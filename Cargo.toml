@@ -1,0 +1,8 @@
+[package]
+name = "simpleWifi-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+simple-terminal-select = { git = "https://github.com/catboylei/simple-terminal-select.git", branch = "patch-1", version = "0.1.0" }
+crossterm = "0.29.0"
