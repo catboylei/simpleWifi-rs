@@ -21,7 +21,7 @@ pub fn prompt_select_from_vec(entries: Vec<WifiNetwork>) -> io::Result<String> {
     let mut paws: Menu = Menu::new();
 
     for entry in entries {
-        paws.add_action(entry.to_string(), entry.ssid);
+        paws.add_action(entry.to_string(), format!("{}:{}", entry.ssid, entry.active));
     }
 
     let res=paws.render()?;

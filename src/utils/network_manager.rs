@@ -45,8 +45,26 @@ pub fn wifi_as_vec() -> Vec<WifiNetwork> {
                 bars:     parts.next()?.to_string(),
                 rate:     parts.next()?.to_string(),
                 security: parts.next()?.to_string(),
-                active: if parts.next()?.to_string().contains("yes") { true } else  { false }
+                active: if parts.next()?.to_string().contains("yes") { true } else { false }
             })
         })
         .collect()
+}
+
+// todo handle passwords somehow
+pub fn handle_wifi_selection(network: String) {
+    let meow: Vec<&str> = network
+        .splitn(2, ":")
+        .collect();
+
+    let ssid = meow.get(0).unwrap();
+    let cmd = if meow.get(1).unwrap().contains("false") { "up" } else { "down" };
+
+    println!("{}", network);
+    println!("applying {} to {}", cmd, ssid);
+
+    Command::new("nmcli")
+        .args(["c", cmd, ssid, "--ask"])
+        .output()
+        .expect("failed to execute process");
 }
