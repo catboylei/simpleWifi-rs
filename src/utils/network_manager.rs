@@ -24,10 +24,17 @@ impl fmt::Display for WifiNetwork {
     }
 }
 
-// nmcli d w l -r yes
+pub fn rescan_wifi() {
+    Command::new("nmcli")
+        .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE", "d", "w", "l", "-r", "yes"])
+        .output()
+        .expect("failed to execute process");
+}
+
+// nmcli d w l
 pub fn scan_wifi() -> String {
     let meow = Command::new("nmcli")
-        .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE", "d", "w", "l", "-r", "yes"])
+        .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE", "d", "w", "l"])
         .output()
         .expect("failed to execute process")
         .stdout;

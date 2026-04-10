@@ -3,8 +3,8 @@ mod action_select;
 
 use std::io;
 use crate::action_select::select_action;
-// SHIFT TODO
-// implement clean enter and leave selection options
+// todo handle using up on something while another is already up
+
 
 fn main() -> io::Result<()> {
     select_action()
