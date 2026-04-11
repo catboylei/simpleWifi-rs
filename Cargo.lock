@@ -187,6 +187,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-simple-tui"
+version = "0.1.0"
+source = "git+https://github.com/shiftyboi1/rust-simple-tui.git#2719502c485d632d41a32b151dbf994d66955d2d"
+dependencies = [
+ "crossterm",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -252,19 +260,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple-terminal-select"
-version = "0.1.0"
-source = "git+https://github.com/catboylei/simple-terminal-select.git?branch=patch-1#0a9f4f1751954df61e09358f1d74e96a1e0db34e"
-dependencies = [
- "crossterm",
-]
-
-[[package]]
 name = "simpleWifi-rs"
 version = "0.1.0"
 dependencies = [
  "crossterm",
- "simple-terminal-select",
+ "rust-simple-tui",
 ]
 
 [[package]]

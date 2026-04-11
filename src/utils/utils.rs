@@ -2,7 +2,7 @@ use std::io;
 use std::io::{stdout};
 use crossterm::ExecutableCommand;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use simple_terminal_select::fancyterm::ui::Menu;
+use rust_simple_tui::simpletui::ui::Menu;
 use crate::utils::network_manager::{wifi_as_vec};
 
 // i dont need error handling if this fails i kill myself
