@@ -1,5 +1,6 @@
 use std::process::Command;
-use std::fmt;
+use std::{fmt, io};
+use std::io::Write;
 
 #[derive(Debug)]
 pub struct WifiNetwork {
@@ -57,6 +58,41 @@ pub fn wifi_as_vec() -> Vec<WifiNetwork> {
         .collect()
 }
 
+// todo merge these checks to a single nmcli query
+pub fn connection_exists(ssid: &str) -> bool {
+    let output = Command::new("nmcli")
+        .args(["-t", "-f", "connection.id", "c", "show", ssid])
+        .output()
+        .expect("failed to run nmcli");
+    output.status.success()
+}
+
+pub fn has_saved_password(ssid: &str) -> bool {
+    let output = Command::new("nmcli")
+        .args(["-t", "-s", "-f", "802-11-wireless-security.psk", "c", "show", ssid])
+        .output()
+        .expect("failed to run nmcli");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    stdout.lines().any(|line| {
+        let value = line.split(':').nth(1).unwrap_or("").trim();
+        !value.is_empty()
+    })
+}
+
+pub fn is_open_network(ssid: &str) -> bool {
+    let output = Command::new("nmcli")
+        .args(["-t", "-f", "802-11-wireless-security.key-mgmt", "c", "show", ssid])
+        .output()
+        .expect("failed to run nmcli");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    stdout.lines().any(|line| {
+        let value = line.split(':').nth(1).unwrap_or("").trim();
+        value.is_empty()
+    })
+}
+
 // todo handle passwords somehow
 pub fn handle_wifi_selection(network: String) {
     let meow: Vec<&str> = network
@@ -64,13 +100,39 @@ pub fn handle_wifi_selection(network: String) {
         .collect();
 
     let ssid = meow.get(0).unwrap();
-    let cmd = if meow.get(1).unwrap().contains("false") { "up" } else { "down" };
+    let is_connected = meow.get(1).unwrap().contains("true");
 
     println!("{}", network);
-    println!("applying {} to {}", cmd, ssid);
 
-    Command::new("nmcli")
-        .args(["c", cmd, ssid, "--ask"])
-        .output()
-        .expect("failed to execute process");
+    if is_connected {
+        println!("meow");
+        Command::new("nmcli")
+            .args(["c", "down", ssid])
+            .output()
+            .expect("failed to execute process");
+    } else if connection_exists(ssid) && (has_saved_password(ssid) || is_open_network(ssid)) {
+        println!("mraow");
+        Command::new("nmcli")
+            .args(["c", "up", ssid])
+            .output()
+            .expect("meow");
+    } else {
+        print!("Password for {}: ", ssid);
+        io::stdout().flush().unwrap();
+
+        let mut password = String::new();
+        io::stdin().read_line(&mut password).unwrap();
+        let password = password.trim();
+
+        // i am sad
+        // todo catch error here in case of bad password and prompt again
+        Command::new("nmcli")
+            .args(["c", "add", "type", "wifi", "con-name", ssid, "ssid", ssid, "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
+            .output()
+            .expect("meow");
+        Command::new("nmcli")
+            .args(["c", "up", ssid])
+            .output()
+            .expect("meow");
+    }
 }
