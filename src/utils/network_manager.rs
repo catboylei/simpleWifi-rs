@@ -99,7 +99,7 @@ pub fn handle_wifi_selection(network: String) {
         .splitn(2, ":")
         .collect();
 
-    let ssid = *meow.get(0).unwrap();
+    let safe_ssid = format!("\'{}\'", *meow.get(0).unwrap()); // wrap ssid in quotes to escape special chars
     let is_connected = meow.get(1).unwrap().contains("true");
 
     println!("{}", network);
@@ -107,32 +107,36 @@ pub fn handle_wifi_selection(network: String) {
     if is_connected {
         println!("meow");
         Command::new("nmcli")
-            .args(["c", "down", ssid])
+            .args(["c", "down", safe_ssid.as_str()])
             .output()
             .expect("failed to execute process");
-    } else if connection_exists(ssid) && (has_saved_password(ssid) || is_open_network(ssid)) {
+    } else if connection_exists(safe_ssid.as_str()) && (has_saved_password(safe_ssid.as_str()) || is_open_network(safe_ssid.as_str())) {
         println!("mraow");
         Command::new("nmcli")
-            .args(["c", "up", ssid])
+            .args(["c", "up", safe_ssid.as_str()])
             .output()
             .expect("meow");
     } else {
-        print!("Password for {}: ", ssid);
-        io::stdout().flush().unwrap();
+        let mut success = false;
+        while success == false {
+            print!("Password for {}: ", safe_ssid);
+            io::stdout().flush().unwrap();
 
-        let mut password = String::new();
-        io::stdin().read_line(&mut password).unwrap();
-        let password = password.trim();
-        let safe_ssid = format!("\'{}\'", ssid); // wrap ssid in quotes to escape special chars
+            let mut password = String::new();
+            io::stdin().read_line(&mut password).unwrap();
+            let password = password.trim();
 
-        // i am sad
-        // todo catch error here in case of bad password and prompt again
+
+            success = Command::new("nmcli")
+                .args(["c", "add", "type", "wifi", "con-name", safe_ssid.as_str(), "ssid", safe_ssid.as_str(), "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
+                .spawn()
+                .expect("meow")
+                .wait().unwrap()
+                .to_string()
+                .contains("802-11-wireless-security.psk: property is invalid");
+        }
         Command::new("nmcli")
-            .args(["c", "add", "type", "wifi", "con-name", safe_ssid.as_str(), "ssid", safe_ssid.as_str(), "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
-            .output()
-            .expect("meow");
-        Command::new("nmcli")
-            .args(["c", "up", ssid])
+            .args(["c", "up", safe_ssid.as_str()])
             .output()
             .expect("meow");
     }

@@ -21,7 +21,7 @@ pub fn select_action() -> io::Result<()> {
             select_action().expect("TODO: panic message");
         },
         "con" => {
-            loop { handle_wifi_selection(prompt_select_from_vec().unwrap_or("Error :c".to_string())) }; // todo dont use loop
+            /* loop */ { handle_wifi_selection(prompt_select_from_vec().unwrap_or("Error :c".to_string())) }; // todo dont use loop
         },
         "test" => {
             println!("{}", connection_exists("ZTE_060899_5G"));
