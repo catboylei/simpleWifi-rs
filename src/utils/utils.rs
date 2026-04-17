@@ -23,7 +23,7 @@ pub fn prompt_select_from_vec() -> io::Result<String> {
     let mut paws: Menu = Menu::new();
 
     for entry in entries {
-        paws.add_action(entry.to_string(), format!("{}:{}", entry.ssid, entry.active));
+        paws.add_action(entry.to_string(), format!("{}:{}:{}", entry.ssid, entry.active, entry.bssid));
     }
 
     paws.add_label("".to_string());
@@ -34,4 +34,29 @@ pub fn prompt_select_from_vec() -> io::Result<String> {
     leave_select();
 
     Ok(res)
+}
+
+pub fn split_escaped(input: &str) -> Vec<String> { // custom splitter with escape chars
+    let mut result = Vec::new();
+    let mut current = String::new();
+    let mut chars = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                // take next char literally
+                if let Some(next) = chars.next() {
+                    current.push(next);
+                }
+            }
+            ':' => {
+                result.push(current);
+                current = String::new();
+            }
+            _ => current.push(c),
+        }
+    }
+
+    result.push(current);
+    result
 }

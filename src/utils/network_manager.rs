@@ -1,7 +1,9 @@
 use std::process::Command;
 use std::{fmt, io};
 use std::io::Write;
+use crate::utils::utils::split_escaped;
 
+// todo make stuff that can use bssid use it
 #[derive(Debug)]
 pub struct WifiNetwork {
     pub ssid: String,
@@ -9,7 +11,8 @@ pub struct WifiNetwork {
     pub bars: String,
     pub rate: String,
     pub security: String,
-    pub active: bool
+    pub active: bool,
+    pub bssid: String
 }
 
 impl fmt::Display for WifiNetwork {
@@ -34,7 +37,7 @@ pub fn rescan_wifi() {
 
 pub fn scan_wifi() -> String {
     let meow = Command::new("nmcli")
-        .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE", "d", "w", "l"])
+        .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE,BSSID", "d", "w", "l"])
         .output()
         .expect("failed to execute process")
         .stdout;
@@ -45,14 +48,15 @@ pub fn wifi_as_vec() -> Vec<WifiNetwork> {
     scan_wifi().lines()
         .filter(|l| !l.is_empty())
         .filter_map(|line| {
-            let mut parts = line.splitn(6, ':');
+            let parts = split_escaped(line);
             Some(WifiNetwork {
-                ssid:     parts.next()?.to_string(),
-                signal:   parts.next()?.parse::<u8>().ok()?,
-                bars:     parts.next()?.to_string(),
-                rate:     parts.next()?.to_string(),
-                security: parts.next()?.to_string(),
-                active: if parts.next()?.to_string().contains("yes") { true } else { false }
+                ssid:   parts.get(0)?.to_string(),
+                signal:  parts.get(1)?.parse::<u8>().ok()?,
+                bars:    parts.get(2)?.to_string(),
+                rate:    parts.get(3)?.to_string(),
+                security:parts.get(4)?.to_string(),
+                active:  parts.get(5)? == "yes",
+                bssid: parts.get(6)?.to_string(),
             })
         })
         .collect()
@@ -80,18 +84,16 @@ pub fn has_saved_password(ssid: &str) -> bool {
     })
 }
 
-// todo fix this this is broken
-pub fn is_open_network(ssid: &str) -> bool {
+pub fn is_open_network(bssid: &str) -> bool {
+    //println!("testing for {bssid}");
     let output = Command::new("nmcli")
-        .args(["-t", "-f", "802-11-wireless-security.key-mgmt", "c", "show", ssid])
+        .args(["-t", "-f", "SECURITY", "d", "w", "l", "bssid", bssid])
         .output()
         .expect("failed to run nmcli");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    stdout.lines().any(|line| {
-        let value = line.split(':').nth(1).unwrap_or("").trim();
-        value.is_empty()
-    })
+    println!("{stdout}");
+    stdout.to_string().trim().is_empty()
 }
 
 fn connection_up(ssid: &str) {
@@ -126,21 +128,35 @@ fn add_connection_password(ssid: &str) -> bool { // returns correct password boo
         .contains("802-11-wireless-security.psk: property is invalid") // return true if correct to stop looping
 }
 
+fn add_connection_open(ssid: &str) {
+    Command::new("nmcli")
+        .args(["c", "add", "type", "wifi", "con-name", ssid, "ssid", ssid])
+        .output()
+        .expect("failed to execute process");
+}
+
 pub fn handle_wifi_selection(network: String) -> bool {
     if network.contains("simplewifi-exit-select") { return true } // return true to exit selection
     if network.contains("simplewifi-refresh-select") { return false } // return false to reopen
+    //println!("{}", network);
 
-    let meow: Vec<&str> = network
-        .splitn(2, ":")
+    let meow: Vec<&str> = network // todo use custom split here
+        .splitn(3, ":")
         .collect();
 
     let ssid = *meow.get(0).unwrap();
     let is_connected = meow.get(1).unwrap().contains("true");
+    let bssid = *meow.get(2).unwrap();
+    let open = is_open_network(bssid);
+    //println!("bssid = {}", bssid);
 
     if is_connected {
         connection_down(ssid)
-    } else if connection_exists(ssid) && (has_saved_password(ssid) || is_open_network(ssid)) {
+    } else if connection_exists(ssid) && (has_saved_password(ssid) || open) {
         connection_up(ssid);
+    } else if open {
+        add_connection_open(ssid);
+        connection_up(ssid)
     } else {
         loop { if add_connection_password(ssid) { break } } // loop until correct password or exit
         connection_up(ssid);
