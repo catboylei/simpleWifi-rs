@@ -99,7 +99,7 @@ pub fn handle_wifi_selection(network: String) {
         .splitn(2, ":")
         .collect();
 
-    let ssid = meow.get(0).unwrap();
+    let ssid = *meow.get(0).unwrap();
     let is_connected = meow.get(1).unwrap().contains("true");
 
     println!("{}", network);
@@ -123,11 +123,12 @@ pub fn handle_wifi_selection(network: String) {
         let mut password = String::new();
         io::stdin().read_line(&mut password).unwrap();
         let password = password.trim();
+        let safe_ssid = format!("\'{}\'", ssid); // wrap ssid in quotes to escape special chars
 
         // i am sad
         // todo catch error here in case of bad password and prompt again
         Command::new("nmcli")
-            .args(["c", "add", "type", "wifi", "con-name", ssid, "ssid", ssid, "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
+            .args(["c", "add", "type", "wifi", "con-name", safe_ssid.as_str(), "ssid", safe_ssid.as_str(), "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
             .output()
             .expect("meow");
         Command::new("nmcli")
