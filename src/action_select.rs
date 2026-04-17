@@ -8,7 +8,7 @@ pub fn select_action() -> io::Result<bool> {
     let mut paws: Menu = Menu::new();
 
     paws.add_label("Wifi Manager :3".to_string());
-    paws.add_action("rescan wifi".to_string(), "scan".to_string());
+    //paws.add_action("rescan wifi".to_string(), "scan".to_string());
     paws.add_action("connections".to_string(), "con".to_string());
     paws.add_action("test".to_string(), "test".to_string());
     paws.add_label("".to_string());

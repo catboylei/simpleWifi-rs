@@ -27,6 +27,7 @@ pub fn prompt_select_from_vec() -> io::Result<String> {
     }
 
     paws.add_label("".to_string());
+    paws.add_action("refresh selection".to_string(), "simplewifi-refresh-select".to_string());
     paws.add_action("back to main menu".to_string(), "simplewifi-exit-select".to_string());
 
     let res=paws.render()?;

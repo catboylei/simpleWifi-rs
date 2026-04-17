@@ -128,6 +128,8 @@ fn add_connection_password(ssid: &str) -> bool { // returns correct password boo
 
 pub fn handle_wifi_selection(network: String) -> bool {
     if network.contains("simplewifi-exit-select") { return true } // return true to exit selection
+    if network.contains("simplewifi-refresh-select") { return false } // return false to reopen
+
     let meow: Vec<&str> = network
         .splitn(2, ":")
         .collect();
