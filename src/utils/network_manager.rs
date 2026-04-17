@@ -80,6 +80,7 @@ pub fn has_saved_password(ssid: &str) -> bool {
     })
 }
 
+// todo fix this this is broken
 pub fn is_open_network(ssid: &str) -> bool {
     let output = Command::new("nmcli")
         .args(["-t", "-f", "802-11-wireless-security.key-mgmt", "c", "show", ssid])
@@ -93,8 +94,8 @@ pub fn is_open_network(ssid: &str) -> bool {
     })
 }
 
-// todo handle passwords somehow
-pub fn handle_wifi_selection(network: String) {
+pub fn handle_wifi_selection(network: String) -> bool {
+    if network.contains("simplewifi-exit-select") { return true } // return true to exit selection
     let meow: Vec<&str> = network
         .splitn(2, ":")
         .collect();
@@ -140,4 +141,5 @@ pub fn handle_wifi_selection(network: String) {
             .output()
             .expect("meow");
     }
+    false // returns false to reopen selection
 }

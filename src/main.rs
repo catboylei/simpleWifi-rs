@@ -7,5 +7,6 @@ use crate::action_select::select_action;
 // todo clean up all of the expects to have sensible messages and remove unnecesary ones
 
 fn main() -> io::Result<()> {
-    select_action()
+    loop { if select_action()? { break } }
+    Ok(())
 }
