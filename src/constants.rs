@@ -8,3 +8,4 @@ use as a daily wifi manager.
 
 Refer to https://github.com/catboylei/simpleWifi-rs for more info :3
 --- SimpleWifi-rs ---";
+pub const LABEL: &str = "    SSID                           BARS  SIGNAL    RATE      SECURITY";

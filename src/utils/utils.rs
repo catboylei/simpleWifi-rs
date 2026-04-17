@@ -3,6 +3,7 @@ use std::io::{stdout};
 use crossterm::ExecutableCommand;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use rust_simple_tui::simpletui::ui::Menu;
+use crate::constants::LABEL;
 use crate::utils::network_manager::{wifi_as_vec};
 
 // i dont need error handling if this fails i kill myself
@@ -21,6 +22,8 @@ pub fn prompt_select_from_vec() -> io::Result<String> {
 
     enter_select();
     let mut paws: Menu = Menu::new();
+
+    paws.add_label(LABEL.to_string());
 
     for entry in entries {
         paws.add_action(entry.to_string(), format!("{}:{}:{}", entry.ssid, entry.active, entry.bssid));
