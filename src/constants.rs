@@ -1,0 +1,1 @@
+pub const NMCLI_ERROR: &str = "Failed to run nmcli, consider installing it in your package manager of choice";

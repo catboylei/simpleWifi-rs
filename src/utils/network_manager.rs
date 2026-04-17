@@ -1,6 +1,7 @@
 use std::process::Command;
 use std::{fmt, io};
 use std::io::Write;
+use crate::constants::NMCLI_ERROR;
 use crate::utils::utils::split_escaped;
 
 // todo make stuff that can use bssid use it
@@ -32,14 +33,14 @@ pub fn rescan_wifi() {
     Command::new("nmcli")
         .args(["d", "w", "l", "-r", "yes"])
         .output()
-        .expect("failed to execute process");
+        .expect(NMCLI_ERROR);
 }
 
 pub fn scan_wifi() -> String {
     let meow = Command::new("nmcli")
         .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE,BSSID", "d", "w", "l"])
         .output()
-        .expect("failed to execute process")
+        .expect(NMCLI_ERROR)
         .stdout;
     String::from_utf8_lossy(&meow).to_string()
 }
@@ -67,7 +68,7 @@ pub fn connection_exists(ssid: &str) -> bool {
     let output = Command::new("nmcli")
         .args(["-t", "-f", "connection.id", "c", "show", ssid])
         .output()
-        .expect("failed to run nmcli");
+        .expect(NMCLI_ERROR);
     output.status.success()
 }
 
@@ -75,7 +76,7 @@ pub fn has_saved_password(ssid: &str) -> bool {
     let output = Command::new("nmcli")
         .args(["-t", "-s", "-f", "802-11-wireless-security.psk", "c", "show", ssid])
         .output()
-        .expect("failed to run nmcli");
+        .expect(NMCLI_ERROR);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     stdout.lines().any(|line| {
@@ -89,10 +90,9 @@ pub fn is_open_network(bssid: &str) -> bool {
     let output = Command::new("nmcli")
         .args(["-t", "-f", "SECURITY", "d", "w", "l", "bssid", bssid])
         .output()
-        .expect("failed to run nmcli");
+        .expect(NMCLI_ERROR);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    println!("{stdout}");
     stdout.to_string().trim().is_empty()
 }
 
@@ -102,7 +102,7 @@ fn connection_up(ssid: &str) {
     Command::new("nmcli")
         .args(["c", "up", ssid])
         .output()
-        .expect("meow");
+        .expect(NMCLI_ERROR);
 }
 
 fn connection_down(ssid: &str) {
@@ -110,7 +110,7 @@ fn connection_down(ssid: &str) {
     Command::new("nmcli")
         .args(["c", "down", ssid])
         .output()
-        .expect("failed to execute process");
+        .expect(NMCLI_ERROR);
 }
 
 fn add_connection_password(ssid: &str) -> bool { // returns correct password bool
@@ -122,7 +122,7 @@ fn add_connection_password(ssid: &str) -> bool { // returns correct password boo
     if password == "cancel" { return true }
     Command::new("nmcli")
         .args(["c", "add", "type", "wifi", "con-name", ssid, "ssid", ssid, "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
-        .spawn().expect("meow")
+        .spawn().expect(NMCLI_ERROR)
         .wait().unwrap()
         .to_string()
         .contains("802-11-wireless-security.psk: property is invalid") // return true if correct to stop looping
@@ -132,15 +132,15 @@ fn add_connection_open(ssid: &str) {
     Command::new("nmcli")
         .args(["c", "add", "type", "wifi", "con-name", ssid, "ssid", ssid])
         .output()
-        .expect("failed to execute process");
+        .expect(NMCLI_ERROR);
 }
 
+// parses from a network string formatted like <ssid>:<status>:<bssid>
 pub fn handle_wifi_selection(network: String) -> bool {
     if network.contains("simplewifi-exit-select") { return true } // return true to exit selection
     if network.contains("simplewifi-refresh-select") { return false } // return false to reopen
-    //println!("{}", network);
 
-    let meow: Vec<&str> = network // todo use custom split here
+    let meow: Vec<&str> = network
         .splitn(3, ":")
         .collect();
 
@@ -148,7 +148,6 @@ pub fn handle_wifi_selection(network: String) -> bool {
     let is_connected = meow.get(1).unwrap().contains("true");
     let bssid = *meow.get(2).unwrap();
     let open = is_open_network(bssid);
-    //println!("bssid = {}", bssid);
 
     if is_connected {
         connection_down(ssid)
