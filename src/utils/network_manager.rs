@@ -29,13 +29,6 @@ impl fmt::Display for WifiNetwork {
     }
 }
 
-pub fn rescan_wifi() {
-    Command::new("nmcli")
-        .args(["d", "w", "l", "-r", "yes"])
-        .output()
-        .expect(NMCLI_ERROR);
-}
-
 pub fn scan_wifi() -> String {
     let meow = Command::new("nmcli")
         .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE,BSSID", "d", "w", "l"])
@@ -63,21 +56,16 @@ pub fn wifi_as_vec() -> Vec<WifiNetwork> {
         .collect()
 }
 
-// todo merge these checks to a single nmcli query
-pub fn connection_exists(ssid: &str) -> bool {
-    let output = Command::new("nmcli")
-        .args(["-t", "-f", "connection.id", "c", "show", ssid])
-        .output()
-        .expect(NMCLI_ERROR);
-    output.status.success()
-}
-
-pub fn has_saved_password(ssid: &str) -> bool {
+fn can_connect(ssid: &str, security: &str) -> bool {
     let output = Command::new("nmcli")
         .args(["-t", "-s", "-f", "802-11-wireless-security.psk", "c", "show", ssid])
         .output()
         .expect(NMCLI_ERROR);
 
+    if !output.status.success() { return false } // if whole command fails return false (not saved)
+    else if security.is_empty() { return true }; // if open network return true
+
+    // else explicitly check for a saved password
     let stdout = String::from_utf8_lossy(&output.stdout);
     stdout.lines().any(|line| {
         let value = line.split(':').nth(1).unwrap_or("").trim();
@@ -85,19 +73,7 @@ pub fn has_saved_password(ssid: &str) -> bool {
     })
 }
 
-pub fn is_open_network(bssid: &str) -> bool {
-    //println!("testing for {bssid}");
-    let output = Command::new("nmcli")
-        .args(["-t", "-f", "SECURITY", "d", "w", "l", "bssid", bssid])
-        .output()
-        .expect(NMCLI_ERROR);
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    stdout.to_string().trim().is_empty()
-}
-
 fn connection_up(ssid: &str) {
-    if !connection_exists(ssid) { return; }
     println!("Attempting to connect to {ssid}...");
     Command::new("nmcli")
         .args(["c", "up", ssid])
@@ -125,7 +101,7 @@ fn add_connection_password(ssid: &str) -> bool { // returns correct password boo
         .spawn().expect(NMCLI_ERROR)
         .wait().unwrap()
         .to_string()
-        .contains("802-11-wireless-security.psk: property is invalid") // return true if correct to stop looping
+        .contains("802-11-wireless-security.psk: property is invalid") // return true if incorrect to keep looping
 }
 
 fn add_connection_open(ssid: &str) {
@@ -138,27 +114,25 @@ fn add_connection_open(ssid: &str) {
 // parses from a network string formatted like <ssid>:<status>:<bssid>
 pub fn handle_wifi_selection(network: String) -> bool {
     if network.contains("simplewifi-exit-select") { return true } // return true to exit selection
+    // todo make a proper rescan with nmcli
     if network.contains("simplewifi-refresh-select") { return false } // return false to reopen
 
-    let meow: Vec<&str> = network
-        .splitn(3, ":")
-        .collect();
-
+    let meow: Vec<&str> = network.splitn(4, ":").collect();
     let ssid = *meow.get(0).unwrap();
     let is_connected = meow.get(1).unwrap().contains("true");
-    let bssid = *meow.get(2).unwrap();
-    let open = is_open_network(bssid);
+    let security = *meow.get(2).unwrap();
+    //let bssid = *meow.get(3).unwrap();
 
     if is_connected {
         connection_down(ssid)
-    } else if connection_exists(ssid) && (has_saved_password(ssid) || open) {
+    } else if can_connect(ssid, security) {
         connection_up(ssid);
-    } else if open {
+    } else if security.is_empty() {
         add_connection_open(ssid);
         connection_up(ssid)
     } else {
         loop { if add_connection_password(ssid) { break } } // loop until correct password or exit
-        connection_up(ssid);
+        if can_connect(ssid, security) { connection_up(ssid) }
     }
     false // returns false to reopen selection
 }

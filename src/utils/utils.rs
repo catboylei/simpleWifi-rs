@@ -17,6 +17,7 @@ pub fn leave_select() {
     disable_raw_mode().unwrap();
 }
 
+// todo handle ethernet here
 pub fn prompt_select_from_vec() -> io::Result<String> {
     let entries = wifi_as_vec();
 
@@ -26,7 +27,7 @@ pub fn prompt_select_from_vec() -> io::Result<String> {
     paws.add_label(LABEL.to_string());
 
     for entry in entries {
-        paws.add_action(entry.to_string(), format!("{}:{}:{}", entry.ssid, entry.active, entry.bssid));
+        paws.add_action(entry.to_string(), format!("{}:{}:{}:{}", entry.ssid, entry.active, entry.security, entry.bssid));
     }
 
     paws.add_label("".to_string());
@@ -56,7 +57,7 @@ pub fn split_escaped(input: &str) -> Vec<String> { // custom splitter with escap
                 result.push(current);
                 current = String::new();
             }
-            _ => current.push(c),
+            _ => current.push(c)
         }
     }
 
