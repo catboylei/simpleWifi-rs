@@ -4,7 +4,7 @@ use std::io::Write;
 use crate::constants::NMCLI_ERROR;
 use crate::utils::utils::split_escaped;
 
-// todo make stuff that can use bssid use it
+// todo full refactor as struct + identify mws w/ bssid and only use nmcli prompts on refresh and init (to populate struct)
 #[derive(Debug)]
 pub struct WifiNetwork {
     pub ssid: String,
@@ -26,6 +26,87 @@ impl fmt::Display for WifiNetwork {
             self.rate,
             self.security,
         )
+    }
+}
+
+#[derive(Debug)]
+pub struct SavedConnection {
+    pub ssid: String,
+    pub can_connect: bool
+}
+
+pub struct NetworkManager {
+    pub detected_devices: Vec<WifiNetwork>,
+    pub saved_connections: Vec<SavedConnection>
+}
+
+impl NetworkManager {
+    pub fn new() -> NetworkManager {
+        NetworkManager {
+            detected_devices: Vec::new(),
+            saved_connections: Vec::new()
+        }
+    }
+
+    pub fn refresh_detected(&mut self) {
+        let meow = Command::new("nmcli") // get rescanned device list
+            .args(["-t", "-f", "SSID,SIGNAL,BARS,RATE,SECURITY,ACTIVE,BSSID", "d", "w", "l", "-r", "yes"])
+            .output()
+            .expect(NMCLI_ERROR)
+            .stdout;
+        self.detected_devices = String::from_utf8_lossy(&meow).to_string() // parse nmcli output as WifiNetworks and save it
+            .lines()
+            .filter(|l| !l.is_empty())
+            .filter_map(|line| {
+                let parts = split_escaped(line);
+                Some(WifiNetwork {
+                    ssid: parts.get(0)?.to_string(),
+                    signal: parts.get(1)?.parse::<u8>().ok()?,
+                    bars: parts.get(2)?.to_string(),
+                    rate: parts.get(3)?.to_string(),
+                    security: parts.get(4)?.to_string(),
+                    active: parts.get(5)? == "yes",
+                    bssid: parts.get(6)?.to_string(),
+                })
+            })
+            .collect();
+    }
+
+    pub fn refresh_saved(&mut self) {
+        let meow = Command::new("nmcli") // request names of all saved wifi connections
+            .args(["-t", "-f", "NAME,TYPE", "c"])
+            .output()
+            .expect(NMCLI_ERROR)
+            .stdout;
+
+        self.saved_connections = String::from_utf8_lossy(&meow).to_string()
+            .lines()
+            .filter(|l| !l.is_empty())
+            .filter_map(|line| {
+                let parts = split_escaped(line);
+                if !parts.get(1)?.contains("wireless") { return None } // only add wireless networks
+                let ssid = parts.get(0)?;
+                let paws = Command::new("nmcli")
+                    .args(["-t", "-s", "-f", "802-11-wireless-security.psk", "c", "show", ssid])
+                    .output()
+                    .expect(NMCLI_ERROR)
+                    .stdout;
+                let output = String::from_utf8_lossy(&paws);
+                let has_password = !output
+                    .splitn(2, ":")
+                    .collect::<Vec<&str>>()
+                    .get(1)
+                    .unwrap_or(&"")
+                    .trim()
+                    .is_empty();
+
+                // can connect if open or saved password present
+                Some(SavedConnection {
+                    ssid: ssid.to_string(),
+                    can_connect: output.is_empty() || has_password
+                })
+            })
+            .collect();
     }
 }
 
