@@ -1,7 +1,9 @@
 use std::process::Command;
 use std::{fmt, io};
 use std::io::Write;
-use crate::constants::{network_cache, NMCLI_ERROR};
+use rust_simple_tui::simpletui::ui::Menu;
+use crate::constants::{network_cache, LABEL, NMCLI_ERROR};
+use crate::utils::utils;
 use crate::utils::utils::split_escaped;
 
 pub struct WifiNetwork {
@@ -133,4 +135,26 @@ pub fn handle_wifi_selection(network: String) -> bool {
         if can_connect(ssid, security) { connection_up(ssid) }
     }
     false // returns false to reopen selection
+}
+
+// todo ethernet
+pub fn prompt_select_from_cache() -> io::Result<String> {
+    utils::enter_select();
+    let mut paws: Menu = Menu::new();
+
+    paws.add_label(LABEL.to_string());
+
+    for entry in network_cache().iter() {
+        // todo wait for lib to handle generics and return wifinetwork object here
+        paws.add_action(entry.to_string(), format!("{}:{}:{}:{}", entry.ssid, entry.active, entry.security, entry.bssid));
+    }
+
+    paws.add_label("".to_string());
+    paws.add_action("refresh selection".to_string(), "simplewifi-refresh-select".to_string());
+    paws.add_action("back to main menu".to_string(), "simplewifi-exit-select".to_string());
+
+    let res=paws.render()?;
+    utils::leave_select();
+
+    Ok(res)
 }

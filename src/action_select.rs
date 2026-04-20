@@ -1,8 +1,8 @@
 use std::io;
 use rust_simple_tui::simpletui::ui::Menu;
 use crate::constants::ABOUT;
-use crate::utils::network_manager::{handle_wifi_selection};
-use crate::utils::utils::{enter_select, leave_select, prompt_select_from_cache};
+use crate::utils::network_manager::{handle_wifi_selection, prompt_select_from_cache};
+use crate::utils::utils::{enter_select, leave_select};
 
 pub fn select_action() -> io::Result<bool> {
     enter_select();

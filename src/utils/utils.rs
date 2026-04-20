@@ -1,10 +1,6 @@
-use std::io;
-use std::io::{stdout};
+use std::io::stdout;
 use crossterm::ExecutableCommand;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use rust_simple_tui::simpletui::ui::Menu;
-use crate::constants::{network_cache, LABEL};
-
 // i dont need error handling if this fails i kill myself
 pub fn enter_select() {
     enable_raw_mode().unwrap();
@@ -14,27 +10,6 @@ pub fn enter_select() {
 pub fn leave_select() {
     stdout().execute(LeaveAlternateScreen).unwrap();
     disable_raw_mode().unwrap();
-}
-
-// todo handle ethernet here
-pub fn prompt_select_from_cache() -> io::Result<String> {
-    enter_select();
-    let mut paws: Menu = Menu::new();
-
-    paws.add_label(LABEL.to_string());
-
-    for entry in network_cache().iter() {
-        paws.add_action(entry.to_string(), format!("{}:{}:{}:{}", entry.ssid, entry.active, entry.security, entry.bssid));
-    }
-
-    paws.add_label("".to_string());
-    paws.add_action("refresh selection".to_string(), "simplewifi-refresh-select".to_string());
-    paws.add_action("back to main menu".to_string(), "simplewifi-exit-select".to_string());
-
-    let res=paws.render()?;
-    leave_select();
-
-    Ok(res)
 }
 
 pub fn split_escaped(input: &str) -> Vec<String> { // custom splitter with escape chars
