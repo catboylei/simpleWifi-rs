@@ -4,10 +4,10 @@ mod constants;
 
 use std::io;
 use crate::action_select::select_action;
-use crate::utils::network_manager::NetworkManager;
+use crate::utils::network_manager::rescan_cache;
 
 fn main() -> io::Result<()> {
-    let nm = NetworkManager::new();
+    rescan_cache();
     loop { if select_action()? { break } }
     Ok(())
 }

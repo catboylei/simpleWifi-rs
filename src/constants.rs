@@ -1,3 +1,9 @@
+use std::sync::{LazyLock, Mutex, MutexGuard};
+use crate::utils::network_manager::WifiNetwork;
+
+static NETWORK_CACHE: LazyLock<Mutex<Vec<WifiNetwork>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+pub fn network_cache() -> MutexGuard<'static, Vec<WifiNetwork>> { NETWORK_CACHE.lock().unwrap() }
+
 pub const NMCLI_ERROR: &str = "Failed to run nmcli, consider installing it in your package manager of choice";
 pub const ABOUT: &str = "--- SimpleWifi-rs ---
 Quick rust CLI tool designed to be a simpler and prettier alternative to nmtui.

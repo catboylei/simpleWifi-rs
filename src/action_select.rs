@@ -1,8 +1,8 @@
 use std::io;
 use rust_simple_tui::simpletui::ui::Menu;
 use crate::constants::ABOUT;
-use crate::utils::network_manager::{handle_wifi_selection, NetworkManager};
-use crate::utils::utils::{enter_select, leave_select, prompt_select_from_vec};
+use crate::utils::network_manager::{handle_wifi_selection};
+use crate::utils::utils::{enter_select, leave_select, prompt_select_from_cache};
 
 pub fn select_action() -> io::Result<bool> {
     enter_select();
@@ -26,16 +26,10 @@ pub fn select_action() -> io::Result<bool> {
         }
         "con" => {
             loop {
-                if handle_wifi_selection(prompt_select_from_vec().unwrap_or("Error :c".to_string())) { break; }
+                if handle_wifi_selection(prompt_select_from_cache().unwrap_or("".to_string())) { break; }
             };
         },
         "test" => {
-            let mut nm = NetworkManager::new();
-            nm.refresh_detected();
-            nm.refresh_saved();
-
-            println!("{:#?}", nm.detected_devices);
-            println!("{:#?}", nm.saved_connections)
         },
         "exit" => { return Ok(true) } // stop looping
         _ => println!("you fucked up g") // this is for the compiler but if you somehow manage to proc it ill send u 10 bucks

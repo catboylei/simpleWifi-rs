@@ -3,8 +3,7 @@ use std::io::{stdout};
 use crossterm::ExecutableCommand;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use rust_simple_tui::simpletui::ui::Menu;
-use crate::constants::LABEL;
-use crate::utils::network_manager::{wifi_as_vec};
+use crate::constants::{network_cache, LABEL};
 
 // i dont need error handling if this fails i kill myself
 pub fn enter_select() {
@@ -18,15 +17,13 @@ pub fn leave_select() {
 }
 
 // todo handle ethernet here
-pub fn prompt_select_from_vec() -> io::Result<String> {
-    let entries = wifi_as_vec();
-
+pub fn prompt_select_from_cache() -> io::Result<String> {
     enter_select();
     let mut paws: Menu = Menu::new();
 
     paws.add_label(LABEL.to_string());
 
-    for entry in entries {
+    for entry in network_cache().iter() {
         paws.add_action(entry.to_string(), format!("{}:{}:{}:{}", entry.ssid, entry.active, entry.security, entry.bssid));
     }
 
